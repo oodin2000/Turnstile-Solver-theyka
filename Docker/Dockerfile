@@ -1,51 +1,19 @@
-FROM ubuntu:latest
+FROM python:3.10-slim
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG=en_US.UTF-8
-ENV LANGUAGE=en_US:en
-ENV LC_ALL=en_US.UTF-8
-ENV TZ=America/New_York
-ENV RUN_API_SOLVER=false
-
-
-RUN apt-get update && \
-    apt-get -y upgrade && \
-    apt-get install -y --no-install-recommends tzdata locales
-
-RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-RUN echo "LC_ALL=en_US.UTF-8" >> /etc/environment
-RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
-RUN echo "LANG=en_US.UTF-8" > /etc/locale.conf
-RUN locale-gen en_US.UTF-8
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    git \
-    curl \
+RUN apt-get update && apt-get install -y \
     wget \
-    screen \
-    sudo \
-    xrdp \
-    xfce4 \
-    xorgxrdp \
-    dbus-x11 \
-    xfce4-terminal \
-    python3-pip \
-    ca-certificates \
-    xvfb
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt remove -y light-locker xscreensaver && \
-    apt autoremove -y && \
-    rm -rf /var/cache/apt /var/lib/apt/lists
+# Install Chromium via apt (lebih ringan dari Chrome)
+RUN apt-get update && apt-get install -y chromium && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt-get install -y ./google-chrome-stable_current_amd64.deb && \
-    rm ./google-chrome-stable_current_amd64.deb
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 
-COPY ./run.sh /usr/bin/
-RUN chmod +x /usr/bin/run.sh
+ENV CHROME_PATH=/usr/bin/chromium
+ENV PYTHONUNBUFFERED=1
 
-EXPOSE 3389
-ENTRYPOINT ["/usr/bin/run.sh"]
+CMD ["python", "api_solver.py", "--host", "0.0.0.0", "--port", "8080", "--headless", "True", "--thread", "1", "--browser_type", "chromium", "--useragent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"]
