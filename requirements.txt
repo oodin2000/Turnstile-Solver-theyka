@@ -3,3 +3,5 @@ asyncio
 argparse
 patchright
 camoufox[geoip]
+quart
+requests
